@@ -6,7 +6,6 @@ objs/
 *.[ao]
 
 # executables
-lem_in
 lem-in
 
 # libraries

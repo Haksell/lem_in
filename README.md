@@ -28,7 +28,12 @@ need to avoid traffic jams as well as walking all over their fellow ants
 
 ## bonus
 
-...
+- [ ] ant farm visualizer
+  - either in 2 dimensions, seen from the top. or even better from the perspective of an ant in the corridors of the farm in 3d
+  - to use it, we could write: `./lem-in < ant_farm_map.txt | ./visu-hex`
+  - please note that because the commands and comments also appear on the standard output, it is possible to pass specific commands to the visualizer (such as various colors or levels)
+  - you should have noticed that the room’s coordinates will only be useful here.
+- ... (at least 5 bonus for 125)
 
 ## push check
 

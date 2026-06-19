@@ -1,5 +1,4 @@
-# TODO: rename lem-in
-NAME := lem_in
+NAME := lem-in
 
 PATH_SRCS := srcs
 PATH_OBJS := objs
