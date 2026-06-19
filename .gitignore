@@ -1,0 +1,13 @@
+# local config
+.vscode/
+
+# object files
+objs/
+*.[ao]
+
+# executables
+lem_in
+lem-in
+
+# libraries
+libft/
