@@ -6,11 +6,33 @@
 
 ## mandatory
 
-...
+- [ ] the goal of this project is to find the quickest way to get n ants across the farm
+- [ ] quickest way means the solution with the least number of lines, respecting the
+output format requested below
+- [ ] obviously, there are some basic constraints. to be the first to arrive, ants will need
+to take the shortest path (and that isn’t necessarily the simplest). they will also
+need to avoid traffic jams as well as walking all over their fellow ants
+- [ ] at the beginning of the game, all the ants are in the room ##start. the goal is to bring them to the room ##end with as few turns as possible. each room can only contain one ant at a time. (except at ##start and ##end which can contain as many ants as necessary)
+- [ ] we consider that all the ants are in the room ##start at the beginning of the game
+- [ ] at each turn you will only display the ants that moved
+- [ ] at each turn you can move each ant only once and through a tube (the room at the receiving end must be empty)
+- [ ] you must to display your results on the standard output in the following format:
+  - `x`, `z`, `r` represent the ant numbers (from 1 to number of ants)
+  - `y`, `w`, `o` represent the room names
+  ```
+  number_of_ants
+  the_rooms
+  the_links
+  Lx-y Lz-w Lr-o ...
+  ```
 
 ## bonus
 
 ...
+
+## performance
+
+- for 4000 rooms, 2 or 3 seconds is great, 9 seconds is mediocre, 15 seconds is too much
 
 ## push check
 
