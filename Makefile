@@ -1,3 +1,4 @@
+# TODO: rename to lem_in after push
 NAME := lem-in
 
 PATH_SRCS := srcs
