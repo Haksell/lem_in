@@ -2,7 +2,12 @@
 
 ## todo
 
-...
+- [ ] code in rust
+- [ ] take executable
+- [ ] reverse with hex-rays
+- [ ] clean
+- [ ] ???
+- [ ] success
 
 ## mandatory
 

@@ -10,3 +10,8 @@ lem-in
 
 # libraries
 libft/
+
+
+# Added by cargo
+
+/target
