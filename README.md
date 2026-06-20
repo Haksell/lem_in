@@ -16,15 +16,13 @@ need to avoid traffic jams as well as walking all over their fellow ants
 - [ ] we consider that all the ants are in the room ##start at the beginning of the game
 - [ ] at each turn you will only display the ants that moved
 - [ ] at each turn you can move each ant only once and through a tube (the room at the receiving end must be empty)
-- [ ] you must to display your results on the standard output in the following format:
+- [ ] you must display your results on the standard output in the following format:
   ```
   number_of_ants
   the_rooms
   the_links
-  Lx-y Lz-w Lr-o ...
+  La1-r1 La2-r2 La3-r3 ...
   ```
-  - `x`, `z`, `r` represent the ant numbers (from 1 to number of ants)
-  - `y`, `w`, `o` represent the room names
 
 ## bonus
 
