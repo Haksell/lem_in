@@ -72,6 +72,7 @@ $(LIBFT): | $(PATH_LIBFT)
 	$(call compile_target,$(PATH_LIBFT))
 
 clean:
+	cargo clean
 	$(call remove_target,$(PATH_LIBFT))
 	$(call remove_target,$(PATH_OBJS))
 
