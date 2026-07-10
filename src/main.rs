@@ -1,4 +1,7 @@
-use std::{collections::VecDeque, sync::LazyLock};
+use std::{
+    collections::{HashSet, VecDeque},
+    sync::LazyLock,
+};
 
 use itertools::Itertools as _;
 
@@ -41,7 +44,7 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
 });
 
 static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
-    ants: 3,
+    ants: 4,
     nodes: vec![
         Node::new("3"),     // 0
         Node::new("start"), // 1
@@ -67,10 +70,10 @@ static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
 });
 
 #[expect(clippy::unwrap_used)]
-fn reconstruct_path(parents: &[Option<(usize, u32)>], start: usize, end: usize) -> Path {
+fn reconstruct_path(parents: &[Option<(usize, usize)>], start: usize, end: usize) -> Path {
     let mut path = vec![end];
     let mut node = end;
-    let mut time = 0; // dummy value to avoid double-counting the end node
+    let mut time = 0;
     while node != start {
         let (previous_node, previous_time) = parents[node].unwrap();
         for _ in previous_time..time {
@@ -86,17 +89,19 @@ fn reconstruct_path(parents: &[Option<(usize, u32)>], start: usize, end: usize) 
     path
 }
 
-fn bfs(map: &Map) -> Path {
+fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
     let mut parents = vec![None; map.nodes.len()];
     parents[map.start] = Some((map.start, 0));
     let mut queue = VecDeque::from([(map.start, 0)]);
-    println!("{queue:?}");
 
     while let Some((node, time)) = queue.pop_front() {
         for &neighbor in &map.edges[node] {
-            if parents[neighbor].is_some() {
+            if parents[neighbor].is_some()
+                || used_rooms_by_time.get(time + 1).is_some_and(|used| used.contains(&neighbor))
+            {
                 continue;
             }
+
             parents[neighbor] = Some((node, time + 1));
             if neighbor == map.end {
                 return reconstruct_path(&parents, map.start, map.end);
@@ -104,7 +109,6 @@ fn bfs(map: &Map) -> Path {
             queue.push_back((neighbor, time + 1));
         }
         queue.push_back((node, time + 1));
-        println!("{queue:?} | {parents:?}");
     }
 
     unreachable!("TODO: handle disconnected graph")
@@ -120,17 +124,27 @@ fn repeated_bfs(map: &Map) -> Output {
     //     }
     // }
 
-    // let mut used_rooms_by_turn = Vec::new();
-    // for ant in 1..=map.ants {
-    let path = bfs(map);
-    println!("{}", path.iter().map(|&node| &map.nodes[node].name).join(" "));
-    // }
+    let mut used_rooms_by_time = vec![HashSet::new()];
+    for ant in 1..=map.ants {
+        let path = bfs(map, &used_rooms_by_time);
+        println!("{path:?}");
+        println!("ant #{ant}: {}", path.iter().map(|&node| &map.nodes[node].name).join(" "));
+        for time in 1..path.len() - 1 {
+            let node = path[time];
+            if used_rooms_by_time.len() <= time {
+                used_rooms_by_time.push(HashSet::from([node]));
+            } else {
+                used_rooms_by_time[time].insert(node);
+            }
+        }
+        // dbg!(&used_rooms_by_time);
+    }
 
     output
 }
 
 fn print_result(result: &[Vec<Move>]) {
-    todo!()
+    // TODO
 }
 
 fn main() {
