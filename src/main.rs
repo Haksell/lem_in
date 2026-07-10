@@ -1,21 +1,34 @@
+use std::sync::LazyLock;
+
+type Edge = (Node, Node);
+
 struct Node {
     name: String,
-    x: i64,
-    y: i64,
+    // TODO: position for visualizer
+    // x: i64,
+    // y: i64,
+}
+
+impl Node {
+    fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
+    }
 }
 
 struct Map {
     ants: u64,
-    start: Node,
-    end: Node,
     nodes: Vec<Node>,
-    edges: Vec<(Node, Node)>,
+    edges: Vec<Vec<usize>>,
+    start: usize,
+    end: usize,
 }
 
-impl Map {
-    const SUBJECT1: Self = todo!();
-}
+static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
+    ants: 3,
+    nodes: vec![Node::new("0"), Node::new("1"), Node::new("2"), Node::new("3")],
+    edges: vec![vec![2], vec![3], vec![3], vec![1, 2]],
+    start: 0,
+    end: 1,
+});
 
-fn main() {
-    let mut map = Map::SUBJECT1;
-}
+fn main() {}
