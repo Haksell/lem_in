@@ -3,6 +3,8 @@ use std::{
     sync::LazyLock,
 };
 
+use itertools::Itertools as _;
+
 type Path = Vec<usize>;
 
 #[derive(Clone)]
@@ -140,6 +142,36 @@ fn repeated_bfs(map: &Map) -> Vec<Path> {
         paths.push(path);
     }
     paths
+}
+
+/// Exponential but provably optimal solver to compare against faster solvers.
+fn iterative_deepening_search(map: &Map) -> Vec<Path> {
+    fn dfs(
+        map: &Map,
+        ants: &mut [usize],
+        paths: &mut Vec<Path>,
+        depth: u32,
+        max_depth: u32,
+    ) -> bool {
+        if depth == max_depth {
+            return ants.iter().all(|&ant| ant == map.end);
+        }
+
+        let mut remaining_ants = (0..ants.len()).filter(|&ant| ants[ant] != map.end).collect_vec();
+
+        for next_nodes in
+            remaining_ants.iter().map(|&ant| map.edges[ant].iter()).multi_cartesian_product()
+        {
+            let mut seen=HashSet::new();
+            for (ant, next_node) in zip(remaining_ants, next_nodes) {
+                if next_node != 
+            }
+        }
+
+        false
+    }
+
+    for max_depth in 1.. {}
 }
 
 fn print_moves(map: &Map, paths: &[Path]) {
