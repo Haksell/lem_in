@@ -37,6 +37,32 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
     end: 1,
 });
 
+static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
+    ants: 3,
+    nodes: vec![
+        Node::new("3"),     // 0
+        Node::new("start"), // 1
+        Node::new("end"),   // 2
+        Node::new("4"),     // 3
+        Node::new("1"),     // 4
+        Node::new("2"),     // 5
+        Node::new("5"),     // 6
+        Node::new("6"),     // 7
+    ],
+    edges: vec![
+        vec![1, 3],
+        vec![0, 4],
+        vec![5, 7],
+        vec![0, 5],
+        vec![1, 5, 6],
+        vec![2, 3, 4],
+        vec![4, 7],
+        vec![2, 6],
+    ],
+    start: 1,
+    end: 2,
+});
+
 // TODO: handle disconnected graph
 fn repeated_bfs(map: &Map) -> Output {
     let mut output = Vec::new();
@@ -76,6 +102,6 @@ fn print_result(result: &[Vec<Move>]) {
 }
 
 fn main() {
-    let result = repeated_bfs(&MAP_SUBJECT_1);
+    let result = repeated_bfs(&MAP_SUBJECT_3);
     print_result(&result);
 }
