@@ -1,6 +1,7 @@
-use std::sync::LazyLock;
+use std::{collections::VecDeque, sync::LazyLock};
 
 type Edge = (Node, Node);
+type Output = Vec<Vec<Move>>;
 
 struct Node {
     name: String,
@@ -13,6 +14,11 @@ impl Node {
     fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
     }
+}
+
+struct Move {
+    ant: usize,
+    room: usize,
 }
 
 struct Map {
@@ -31,4 +37,45 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
     end: 1,
 });
 
-fn main() {}
+// TODO: handle disconnected graph
+fn repeated_bfs(map: &Map) -> Output {
+    let mut output = Vec::new();
+    // let mut used_rooms_by_turn = Vec::new();
+    for ant in 1..=map.ants {
+        let mut queue = VecDeque::from([(0, map.start)]);
+        let mut time_to_reach = vec![None; map.nodes.len()];
+        let mut parents = vec![None; map.nodes.len()];
+
+        time_to_reach[map.start] = Some(0);
+        'outer: while let Some((time, node)) = queue.pop_front() {
+            if node == map.end {
+                break;
+            }
+            queue.push_back((time + 1, node));
+            for &neighbor in &map.edges[node] {
+                if parents[neighbor].is_some() {
+                    continue;
+                }
+                parents[neighbor] = Some(node);
+                time_to_reach[neighbor] = Some(time + 1);
+                queue.push_back((time + 1, neighbor));
+                if neighbor == map.end {
+                    break 'outer;
+                }
+            }
+        }
+
+        println!("{:?}", parents);
+    }
+
+    output
+}
+
+fn print_result(result: &[Vec<Move>]) {
+    todo!()
+}
+
+fn main() {
+    let result = repeated_bfs(&MAP_SUBJECT_1);
+    print_result(&result);
+}
