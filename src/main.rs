@@ -53,14 +53,14 @@ static MAP_SUBJECT_2_3: LazyLock<Map> = LazyLock::new(|| {
 static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 4,
     nodes: vec![
-        Node::new("3"),     // 0
-        Node::new("start"), // 1
-        Node::new("end"),   // 2
-        Node::new("4"),     // 3
-        Node::new("1"),     // 4
-        Node::new("2"),     // 5
-        Node::new("5"),     // 6
-        Node::new("6"),     // 7
+        Node::new("3"),
+        Node::new("start"),
+        Node::new("end"),
+        Node::new("4"),
+        Node::new("1"),
+        Node::new("2"),
+        Node::new("5"),
+        Node::new("6"),
     ],
     edges: vec![
         vec![1, 3],
@@ -142,7 +142,6 @@ fn repeated_bfs(map: &Map) -> Vec<Path> {
     paths
 }
 
-#[expect(clippy::print_stdout)]
 fn print_moves(map: &Map, paths: &[Path]) {
     let max_time = paths.iter().map(Vec::len).max().unwrap();
     let mut previous = vec![map.start; paths.len()];
@@ -168,7 +167,64 @@ fn print_moves(map: &Map, paths: &[Path]) {
 }
 
 fn main() {
-    let map = &MAP_SUBJECT_2_3;
+    let map = &MAP_SUBJECT_3;
     let paths = repeated_bfs(map);
     print_moves(map, &paths);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn solves(map: &Map, paths: &[Path]) -> bool {
+        let max_path = paths.iter().map(Vec::len).max().unwrap();
+        let mut ants = vec![map.start; map.ants as usize];
+        for time in 1..max_path {
+            let mut seen = HashSet::new();
+            for (ant, path) in paths.iter().enumerate() {
+                let Some(&node) = path.get(time) else {
+                    continue;
+                };
+                if seen.contains(&node) {
+                    return false;
+                }
+                if node != ants[ant] && !map.edges[ants[ant]].contains(&node) {
+                    return false;
+                }
+                if node != map.end && node != map.start {
+                    seen.insert(node);
+                }
+                ants[ant] = node;
+            }
+        }
+        true
+    }
+
+    fn check_repeated_bfs(map: &Map, expected_time: usize) {
+        let paths = repeated_bfs(map);
+        assert_eq!(paths.len(), map.ants as usize);
+        assert!(solves(map, &paths));
+        let max_path = paths.iter().map(Vec::len).max().unwrap();
+        assert_eq!(max_path - 1, expected_time);
+    }
+
+    #[test]
+    fn repeated_bfs_subject_1() {
+        check_repeated_bfs(&MAP_SUBJECT_1, 5);
+    }
+
+    #[test]
+    fn repeated_bfs_subject_2_2() {
+        check_repeated_bfs(&MAP_SUBJECT_2_2, 3);
+    }
+
+    #[test]
+    fn repeated_bfs_subject_2_3() {
+        check_repeated_bfs(&MAP_SUBJECT_2_3, 3);
+    }
+
+    #[test]
+    fn repeated_bfs_subject_3() {
+        check_repeated_bfs(&MAP_SUBJECT_3, 5);
+    }
 }
