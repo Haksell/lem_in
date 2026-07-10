@@ -3,12 +3,9 @@ use std::{
     sync::LazyLock,
 };
 
-use itertools::Itertools as _;
-
-type Edge = (Node, Node);
 type Path = Vec<usize>;
-type Output = Vec<Vec<Move>>;
 
+#[derive(Clone)]
 struct Node {
     name: String,
     // TODO: position for visualizer
@@ -22,13 +19,9 @@ impl Node {
     }
 }
 
-struct Move {
-    ant: usize,
-    room: usize,
-}
-
+#[derive(Clone)]
 struct Map {
-    ants: u64,
+    ants: u32, // TODO: check not 0
     nodes: Vec<Node>,
     edges: Vec<Vec<usize>>,
     start: usize,
@@ -41,6 +34,20 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
     edges: vec![vec![2], vec![3], vec![3], vec![1, 2]],
     start: 0,
     end: 1,
+});
+
+static MAP_SUBJECT_2_2: LazyLock<Map> = LazyLock::new(|| Map {
+    ants: 2,
+    nodes: vec![Node::new("1"), Node::new("0"), Node::new("4"), Node::new("2"), Node::new("3")],
+    edges: vec![vec![1, 2], vec![0, 3], vec![0, 4], vec![1, 4], vec![2, 3]],
+    start: 1,
+    end: 2,
+});
+
+static MAP_SUBJECT_2_3: LazyLock<Map> = LazyLock::new(|| {
+    let mut map = MAP_SUBJECT_2_2.clone();
+    map.ants = 3;
+    map
 });
 
 static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
@@ -69,7 +76,6 @@ static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
     end: 2,
 });
 
-#[expect(clippy::unwrap_used)]
 fn reconstruct_path(parents: &[Option<(usize, usize)>], start: usize, end: usize) -> Path {
     let mut path = vec![end];
     let mut node = end;
@@ -89,7 +95,7 @@ fn reconstruct_path(parents: &[Option<(usize, usize)>], start: usize, end: usize
     path
 }
 
-fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
+fn bfs(map: &Map, used_nodes_by_time: &[HashSet<usize>]) -> Path {
     let mut parents = vec![None; map.nodes.len()];
     parents[map.start] = Some((map.start, 0));
     let mut queue = VecDeque::from([(map.start, 0)]);
@@ -97,7 +103,9 @@ fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
     while let Some((node, time)) = queue.pop_front() {
         for &neighbor in &map.edges[node] {
             if parents[neighbor].is_some()
-                || used_rooms_by_time.get(time + 1).is_some_and(|used| used.contains(&neighbor))
+                || used_nodes_by_time
+                    .get(time + 1)
+                    .is_some_and(|used_nodes| used_nodes.contains(&neighbor))
             {
                 continue;
             }
@@ -114,40 +122,53 @@ fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
     unreachable!("TODO: handle disconnected graph")
 }
 
-fn repeated_bfs(map: &Map) -> Output {
-    let mut output = Vec::new();
-
-    // for (node, neighbors) in map.edges.iter().enumerate() {
-    //     println!("{}", map.nodes[node].name);
-    //     for &neighbor in neighbors {
-    //         println!("- {}", map.nodes[neighbor].name);
-    //     }
-    // }
-
-    let mut used_rooms_by_time = vec![HashSet::new()];
-    for ant in 1..=map.ants {
-        let path = bfs(map, &used_rooms_by_time);
-        println!("{path:?}");
-        println!("ant #{ant}: {}", path.iter().map(|&node| &map.nodes[node].name).join(" "));
-        for time in 1..path.len() - 1 {
-            let node = path[time];
-            if used_rooms_by_time.len() <= time {
-                used_rooms_by_time.push(HashSet::from([node]));
-            } else {
-                used_rooms_by_time[time].insert(node);
-            }
+fn update_used_nodes(used_nodes_by_time: &mut Vec<HashSet<usize>>, path: &Path) {
+    for time in 1..path.len() - 1 {
+        while used_nodes_by_time.len() <= time {
+            used_nodes_by_time.push(HashSet::new());
         }
-        // dbg!(&used_rooms_by_time);
+        used_nodes_by_time[time].insert(path[time]);
     }
-
-    output
 }
 
-fn print_result(result: &[Vec<Move>]) {
-    // TODO
+fn repeated_bfs(map: &Map) -> Vec<Path> {
+    let mut paths = Vec::new();
+    let mut used_nodes_by_time = vec![];
+    for _ in 0..map.ants {
+        let path = bfs(map, &used_nodes_by_time);
+        update_used_nodes(&mut used_nodes_by_time, &path);
+        paths.push(path);
+    }
+    paths
+}
+
+#[expect(clippy::print_stdout)]
+fn print_moves(map: &Map, paths: &[Path]) {
+    let max_time = paths.iter().map(Vec::len).max().unwrap();
+    let mut previous = vec![map.start; paths.len()];
+    for time in 1..max_time {
+        let mut first_in_line = true;
+        for (ant, path) in paths.iter().enumerate() {
+            let Some(&node) = path.get(time) else {
+                continue;
+            };
+            if node != previous[ant] {
+                previous[ant] = node;
+                print!(
+                    "{}L{}-{}",
+                    if first_in_line { "" } else { " " },
+                    ant + 1,
+                    map.nodes[node].name
+                );
+                first_in_line = false;
+            }
+        }
+        println!();
+    }
 }
 
 fn main() {
-    let result = repeated_bfs(&MAP_SUBJECT_3);
-    print_result(&result);
+    let map = &MAP_SUBJECT_2_3;
+    let paths = repeated_bfs(map);
+    print_moves(map, &paths);
 }

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-itertools = "0.15"
 
 [lints.clippy]
 # warn all lints by default
@@ -28,3 +27,4 @@ indexing_slicing = "allow"
 missing_docs_in_private_items = "allow"
 single_call_fn = "allow"
 std_instead_of_alloc = "allow"
+unwrap_used = "allow"
