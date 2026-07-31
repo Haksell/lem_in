@@ -2,7 +2,6 @@ use std::{
     collections::{HashSet, VecDeque},
     sync::LazyLock,
 };
-
 use itertools::Itertools as _;
 
 type Path = Vec<usize>;
