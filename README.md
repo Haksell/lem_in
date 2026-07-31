@@ -1,11 +1,12 @@
 # lem_in
 
-## todo
+## plan to avoid c like the plague
 
 - [ ] code in rust
 - [ ] take executable
 - [ ] reverse with hex-rays
-- [ ] clean
+- [ ] clean with clangd
+- [ ] clean manually
 - [ ] ???
 - [ ] success
 
