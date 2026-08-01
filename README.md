@@ -52,3 +52,5 @@ need to avoid traffic jams as well as walking all over their fellow ants
 - [ ] check all leaks with valgrind
 - [ ] check all leaks with fsanitize
 - [ ] clone vogsphere
+- [ ] computer on performance mode
+
