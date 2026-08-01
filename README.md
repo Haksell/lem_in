@@ -39,6 +39,10 @@ need to avoid traffic jams as well as walking all over their fellow ants
   - you should have noticed that the room’s coordinates will only be useful here.
 - ... (at least 5 bonus for 125)
 
+## additional tests
+
+- `start=end` => finish immediately (special message)
+
 ## push check
 
 - [ ] reread subject

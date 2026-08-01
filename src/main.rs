@@ -1,6 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
-    sync::LazyLock,
+    collections::{HashSet, VecDeque}, iter::zip, sync::LazyLock,
 };
 use itertools::Itertools as _;
 
@@ -148,7 +147,7 @@ fn iterative_deepening_search(map: &Map) -> Vec<Path> {
     fn dfs(
         map: &Map,
         ants: &mut [usize],
-        paths: &mut Vec<Path>,
+        paths: &mut [Path],
         depth: u32,
         max_depth: u32,
     ) -> bool {
@@ -170,7 +169,15 @@ fn iterative_deepening_search(map: &Map) -> Vec<Path> {
         false
     }
 
-    for max_depth in 1.. {}
+    for max_depth in 1.. {
+        let mut ants = vec![map.start; map.ants as usize];
+        let mut paths = vec![vec![]; map.ants as usize];
+        if dfs(map, &mut ants, &mut paths, 0, max_depth) {
+            return paths;
+        }
+    }
+
+    unreachable!()
 }
 
 fn print_moves(map: &Map, paths: &[Path]) {
