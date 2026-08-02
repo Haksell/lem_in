@@ -1,7 +1,9 @@
-use std::{
-    collections::{HashSet, VecDeque}, iter::zip, sync::LazyLock,
-};
 use itertools::Itertools as _;
+use std::{
+    collections::{HashSet, VecDeque},
+    iter::zip,
+    sync::LazyLock,
+};
 
 type Path = Vec<usize>;
 
@@ -144,25 +146,53 @@ fn repeated_bfs(map: &Map) -> Vec<Path> {
 
 /// Exponential but provably optimal solver to compare against faster solvers.
 fn iterative_deepening_search(map: &Map) -> Vec<Path> {
-    fn dfs(
-        map: &Map,
-        ants: &mut [usize],
-        paths: &mut [Path],
-        depth: u32,
-        max_depth: u32,
-    ) -> bool {
-        if depth == max_depth {
-            return ants.iter().all(|&ant| ant == map.end);
+    fn valid_next_nodes(next_nodes: &[usize], map_end: usize) -> bool {
+        let mut seen = HashSet::new();
+
+        for next_node in next_nodes {
+            if seen.contains(next_node) {
+                return false;
+            }
+            if *next_node != map_end {
+                seen.insert(next_node);
+            }
         }
 
-        let mut remaining_ants = (0..ants.len()).filter(|&ant| ants[ant] != map.end).collect_vec();
+        true
+    }
 
-        for next_nodes in
-            remaining_ants.iter().map(|&ant| map.edges[ant].iter()).multi_cartesian_product()
+    fn dfs(map: &Map, paths: &mut [Path], depth: u32) -> bool {
+        if depth == 0 {
+            return paths.iter().all(|path| path[path.len() - 1] == map.end);
+        }
+
+        let (remaining_ants, remaining_nodes): (Vec<_>, Vec<_>) = paths
+            .iter()
+            .enumerate()
+            .map(|(ant, path)| (ant, path[path.len() - 1]))
+            .filter(|(_, node)| *node != map.end)
+            .unzip();
+
+        for next_nodes in remaining_nodes
+            .iter()
+            .map(|&node| {
+                let mut next_nodes = map.edges[node].clone();
+                next_nodes.push(node);
+                next_nodes
+            })
+            .multi_cartesian_product()
+            .filter(|next_nodes| valid_next_nodes(next_nodes, map.end))
         {
-            let mut seen=HashSet::new();
-            for (ant, next_node) in zip(remaining_ants, next_nodes) {
-                if next_node != 
+            for (&ant, next_node) in zip(&remaining_ants, next_nodes) {
+                paths[ant].push(next_node);
+            }
+
+            if dfs(map, paths, depth - 1) {
+                return true;
+            }
+
+            for &ant in &remaining_ants {
+                paths[ant].pop();
             }
         }
 
@@ -170,9 +200,8 @@ fn iterative_deepening_search(map: &Map) -> Vec<Path> {
     }
 
     for max_depth in 1.. {
-        let mut ants = vec![map.start; map.ants as usize];
-        let mut paths = vec![vec![]; map.ants as usize];
-        if dfs(map, &mut ants, &mut paths, 0, max_depth) {
+        let mut paths = vec![vec![map.start]; map.ants as usize];
+        if dfs(map, &mut paths, max_depth) {
             return paths;
         }
     }
