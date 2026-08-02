@@ -146,14 +146,14 @@ fn repeated_bfs(map: &Map) -> Vec<Path> {
 
 /// Exponential but provably optimal solver to compare against faster solvers.
 fn iterative_deepening_search(map: &Map) -> Vec<Path> {
-    fn valid_next_nodes(next_nodes: &[usize], map_end: usize) -> bool {
+    fn valid_next_nodes(next_nodes: &[usize], map: &Map) -> bool {
         let mut seen = HashSet::new();
 
         for next_node in next_nodes {
             if seen.contains(next_node) {
                 return false;
             }
-            if *next_node != map_end {
+            if *next_node != map.end && *next_node != map.start {
                 seen.insert(next_node);
             }
         }
@@ -181,7 +181,7 @@ fn iterative_deepening_search(map: &Map) -> Vec<Path> {
                 next_nodes
             })
             .multi_cartesian_product()
-            .filter(|next_nodes| valid_next_nodes(next_nodes, map.end))
+            .filter(|next_nodes| valid_next_nodes(next_nodes, map))
         {
             for (&ant, next_node) in zip(&remaining_ants, next_nodes) {
                 paths[ant].push(next_node);
@@ -234,14 +234,26 @@ fn print_moves(map: &Map, paths: &[Path]) {
 }
 
 fn main() {
-    let map = &MAP_SUBJECT_3;
-    let paths = repeated_bfs(map);
-    print_moves(map, &paths);
+    for map in [&MAP_SUBJECT_1, &MAP_SUBJECT_2_2, &MAP_SUBJECT_2_3, &MAP_SUBJECT_3] {
+        let paths_bfs = repeated_bfs(map);
+        let paths_dfs = iterative_deepening_search(map);
+        println!("=== Repeated BFS ===");
+        print_moves(map, &paths_bfs);
+        println!("=== Iterative Deepening Search ===");
+        print_moves(map, &paths_dfs);
+        println!("=== Longest paths ===");
+        let longest_path_bfs = paths_bfs.iter().map(Vec::len).max().unwrap();
+        let longest_path_dfs = paths_dfs.iter().map(Vec::len).max().unwrap();
+        println!("repeated_bfs={longest_path_bfs} naive={longest_path_dfs}");
+        println!("=======================");
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    type Solver = fn(&Map) -> Vec<Path>;
 
     fn solves(map: &Map, paths: &[Path]) -> bool {
         let max_path = paths.iter().map(Vec::len).max().unwrap();
@@ -267,8 +279,8 @@ mod tests {
         true
     }
 
-    fn check_repeated_bfs(map: &Map, expected_time: usize) {
-        let paths = repeated_bfs(map);
+    fn check_map_with_solver(solver: Solver, map: &Map, expected_time: usize) {
+        let paths = solver(map);
         assert_eq!(paths.len(), map.ants as usize);
         assert!(solves(map, &paths));
         let max_path = paths.iter().map(Vec::len).max().unwrap();
@@ -276,22 +288,26 @@ mod tests {
     }
 
     #[test]
-    fn repeated_bfs_subject_1() {
-        check_repeated_bfs(&MAP_SUBJECT_1, 5);
+    fn subject_1() {
+        check_map_with_solver(repeated_bfs, &MAP_SUBJECT_1, 5);
+        check_map_with_solver(iterative_deepening_search, &MAP_SUBJECT_1, 5);
     }
 
     #[test]
-    fn repeated_bfs_subject_2_2() {
-        check_repeated_bfs(&MAP_SUBJECT_2_2, 3);
+    fn subject_2_2() {
+        check_map_with_solver(repeated_bfs, &MAP_SUBJECT_2_2, 3);
+        check_map_with_solver(iterative_deepening_search, &MAP_SUBJECT_2_2, 3);
     }
 
     #[test]
-    fn repeated_bfs_subject_2_3() {
-        check_repeated_bfs(&MAP_SUBJECT_2_3, 3);
+    fn subject_2_3() {
+        check_map_with_solver(repeated_bfs, &MAP_SUBJECT_2_3, 3);
+        check_map_with_solver(iterative_deepening_search, &MAP_SUBJECT_2_3, 3);
     }
 
     #[test]
-    fn repeated_bfs_subject_3() {
-        check_repeated_bfs(&MAP_SUBJECT_3, 5);
+    fn subject_3() {
+        check_map_with_solver(repeated_bfs, &MAP_SUBJECT_3, 5);
+        check_map_with_solver(iterative_deepening_search, &MAP_SUBJECT_3, 5);
     }
 }
