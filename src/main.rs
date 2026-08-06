@@ -7,6 +7,7 @@ use std::{
 };
 
 type Path = Vec<usize>;
+type Edge = (usize, usize);
 
 #[derive(Clone, Debug)]
 struct Node {
@@ -32,6 +33,8 @@ enum ParseMapError {
     MultipleStartNodes,
     MultipleEndNodes,
     MissingAntsNumber,
+    MissingNodes,
+    MissingEdges,
 }
 
 impl From<std::io::Error> for ParseMapError {
@@ -76,6 +79,10 @@ impl Map {
             let full_line = res_line?;
             let line = full_line.trim();
 
+            if line.starts_with('#') && !line.starts_with("##") {
+                continue;
+            }
+
             match parsing_state {
                 ParsingState::Ants => {
                     ants = Some(parse_ants(line)?);
@@ -97,7 +104,18 @@ impl Map {
                     line if line.starts_with("##") => {
                         return Err(ParseMapError::InvalidTag(line.into()));
                     }
-                    _ => todo!(),
+                    _ => match Self::parse_node(line) {
+                        Ok(node) => nodes.push(node),
+                        Err(err_parse_node) => match Self::parse_edge(line) {
+                            Ok((node1, node2)) => {
+                                edges = vec![vec![]; nodes.len()];
+                                edges[node1].push(node2);
+                                edges[node2].push(node1);
+                            }
+                            // TODO: return err_parse_edge depending on circumstances
+                            Err(err_parse_edge) => return Err(err_parse_node),
+                        },
+                    },
                 },
                 ParsingState::SpecialNode(special_node) => {
                     let node = Self::parse_node(line)?;
@@ -116,12 +134,18 @@ impl Map {
         let Some(ants) = ants else {
             return Err(ParseMapError::MissingAntsNumber);
         };
+        if nodes.is_empty() {
+            return Err(ParseMapError::MissingNodes);
+        }
         let Some(start) = start else {
             return Err(ParseMapError::MissingStartNode);
         };
         let Some(end) = end else {
             return Err(ParseMapError::MissingEndNode);
         };
+        if edges.is_empty() {
+            return Err(ParseMapError::MissingEdges);
+        }
 
         Ok(Self { ants, nodes, edges, start, end })
     }
@@ -130,7 +154,9 @@ impl Map {
         todo!()
     }
 
-    // fn try_parse_comment()
+    fn parse_edge(line: &str) -> Result<Edge, ParseMapError> {
+        todo!()
+    }
 }
 
 fn parse_ants(line: &str) -> Result<u32, ParseMapError> {

@@ -3,7 +3,6 @@
 ## misc
 
 - check connectivity after parsing?
-- `start=end` => finish immediately (special message)
 - one invalid file for each `MapParseError` variant
 
 ## mandatory
