@@ -51,12 +51,15 @@ struct Map {
 
 impl Map {
     fn parse() -> Result<Self, ParseMapError> {
-        // #[derive(Clone, Copy)]
+        enum SpecialNode {
+            Start,
+            End,
+        }
+
         enum ParsingState {
             Ants,
             Nodes,
-            StartNode,
-            EndNode,
+            SpecialNode(SpecialNode),
             Edges,
         }
 
@@ -74,40 +77,40 @@ impl Map {
             let line = full_line.trim();
 
             match parsing_state {
-                ParsingState::Ants => todo!(),
-                ParsingState::Nodes => todo!(),
-                ParsingState::StartNode => todo!(),
-                ParsingState::EndNode => todo!(),
+                ParsingState::Ants => {
+                    ants = Some(parse_ants(line)?);
+                    parsing_state = ParsingState::Nodes;
+                }
+                ParsingState::Nodes => match line {
+                    "##start" => {
+                        if start.is_some() {
+                            return Err(ParseMapError::MultipleStartNodes);
+                        }
+                        parsing_state = ParsingState::SpecialNode(SpecialNode::Start);
+                    }
+                    "##end" => {
+                        if end.is_some() {
+                            return Err(ParseMapError::MultipleEndNodes);
+                        }
+                        parsing_state = ParsingState::SpecialNode(SpecialNode::End);
+                    }
+                    line if line.starts_with("##") => {
+                        return Err(ParseMapError::InvalidTag(line.into()));
+                    }
+                    _ => todo!(),
+                },
+                ParsingState::SpecialNode(special_node) => {
+                    let node = Self::parse_node(line)?;
+                    let special_node_idx = Some(nodes.len());
+                    match special_node {
+                        SpecialNode::Start => start = special_node_idx,
+                        SpecialNode::End => end = special_node_idx,
+                    }
+                    nodes.push(node);
+                    parsing_state = ParsingState::Nodes;
+                }
                 ParsingState::Edges => todo!(),
             }
-
-            // if let Some(expected_node) = expected_node.take() {
-            //     let node = Self::parse_node(line)?;
-            //     match expected_node {
-            //         ExpectedNode::Start => start = Some(Self::parse_node(line)?),
-            //         ExpectedNode::End => end = Some(Self::parse_node(line)?),
-            //     }
-            //     nodes.push(node);
-            //     continue;
-            // }
-
-            // if line == "##start" {
-            //     if start.is_some() {
-            //         return Err(ParseMapError::MultipleStartNodes);
-            //     }
-            //     expected_node = Some(ExpectedNode::Start);
-            // }
-
-            // if line == "##end" {
-            //     if end.is_some() {
-            //         return Err(ParseMapError::MultipleEndNodes);
-            //     }
-            //     expected_node = Some(ExpectedNode::End);
-            // }
-
-            // if line.starts_with("##") {
-            //     return Err(ParseMapError::InvalidTag(line.into()));
-            // }
         }
 
         let Some(ants) = ants else {
@@ -120,7 +123,7 @@ impl Map {
             return Err(ParseMapError::MissingEndNode);
         };
 
-        Ok(Self { ants: todo!(), nodes, edges: todo!(), start, end })
+        Ok(Self { ants, nodes, edges, start, end })
     }
 
     fn parse_node(line: &str) -> Result<Node, ParseMapError> {
@@ -128,6 +131,10 @@ impl Map {
     }
 
     // fn try_parse_comment()
+}
+
+fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
+    todo!()
 }
 
 static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {

@@ -1,14 +1,10 @@
 # lem_in
 
-## plan to avoid c like the plague
+## misc
 
-- [ ] code in rust
-- [ ] take executable
-- [ ] reverse with hex-rays
-- [ ] clean with clangd
-- [ ] clean manually
-- [ ] ???
-- [ ] success
+- check connectivity after parsing?
+- `start=end` => finish immediately (special message)
+- one invalid file for each `MapParseError` variant
 
 ## mandatory
 
@@ -38,11 +34,6 @@ need to avoid traffic jams as well as walking all over their fellow ants
   - please note that because the commands and comments also appear on the standard output, it is possible to pass specific commands to the visualizer (such as various colors or levels)
   - you should have noticed that the room’s coordinates will only be useful here.
 - ... (at least 5 bonus for 125)
-
-## additional tests
-
-- `start=end` => finish immediately (special message)
-- one invalid file for each `MapParseError` variant
 
 ## push check
 
