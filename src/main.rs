@@ -31,6 +31,7 @@ enum ParseMapError {
     InvalidTag(String),
     MultipleStartNodes,
     MultipleEndNodes,
+    MissingAntsNumber,
 }
 
 impl From<std::io::Error> for ParseMapError {
@@ -50,13 +51,16 @@ struct Map {
 
 impl Map {
     fn parse() -> Result<Self, ParseMapError> {
-        #[derive(Clone, Copy)]
-        enum ExpectedNode {
-            Start,
-            End,
+        // #[derive(Clone, Copy)]
+        enum ParsingState {
+            Ants,
+            Nodes,
+            StartNode,
+            EndNode,
+            Edges,
         }
 
-        let mut expected_node = None;
+        let mut parsing_state = ParsingState::Ants;
 
         let mut ants = None;
         let mut nodes = Vec::new();
@@ -69,35 +73,46 @@ impl Map {
             let full_line = res_line?;
             let line = full_line.trim();
 
-            if let Some(expected_node) = expected_node.take() {
-                let node = Self::parse_node(line)?;
-                match expected_node {
-                    ExpectedNode::Start => start = Some(Self::parse_node(line)?),
-                    ExpectedNode::End => end = Some(Self::parse_node(line)?),
-                }
-                nodes.push(node);
-                continue;
+            match parsing_state {
+                ParsingState::Ants => todo!(),
+                ParsingState::Nodes => todo!(),
+                ParsingState::StartNode => todo!(),
+                ParsingState::EndNode => todo!(),
+                ParsingState::Edges => todo!(),
             }
 
-            if line == "##start" {
-                if start.is_some() {
-                    return Err(ParseMapError::MultipleStartNodes);
-                }
-                expected_node = Some(ExpectedNode::Start);
-            }
+            // if let Some(expected_node) = expected_node.take() {
+            //     let node = Self::parse_node(line)?;
+            //     match expected_node {
+            //         ExpectedNode::Start => start = Some(Self::parse_node(line)?),
+            //         ExpectedNode::End => end = Some(Self::parse_node(line)?),
+            //     }
+            //     nodes.push(node);
+            //     continue;
+            // }
 
-            if line == "##end" {
-                if end.is_some() {
-                    return Err(ParseMapError::MultipleEndNodes);
-                }
-                expected_node = Some(ExpectedNode::End);
-            }
+            // if line == "##start" {
+            //     if start.is_some() {
+            //         return Err(ParseMapError::MultipleStartNodes);
+            //     }
+            //     expected_node = Some(ExpectedNode::Start);
+            // }
 
-            if line.starts_with("##") {
-                return Err(ParseMapError::InvalidTag(line.into()));
-            }
+            // if line == "##end" {
+            //     if end.is_some() {
+            //         return Err(ParseMapError::MultipleEndNodes);
+            //     }
+            //     expected_node = Some(ExpectedNode::End);
+            // }
+
+            // if line.starts_with("##") {
+            //     return Err(ParseMapError::InvalidTag(line.into()));
+            // }
         }
 
+        let Some(ants) = ants else {
+            return Err(ParseMapError::MissingAntsNumber);
+        };
         let Some(start) = start else {
             return Err(ParseMapError::MissingStartNode);
         };

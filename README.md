@@ -46,6 +46,8 @@ need to avoid traffic jams as well as walking all over their fellow ants
 
 ## push check
 
+- [ ] node -> room
+- [ ] edge -> link
 - [ ] reread subject
 - [ ] check below 2 seconds for 4000 rooms
 - [ ] `make test`
