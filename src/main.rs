@@ -1,6 +1,7 @@
 use itertools::Itertools as _;
 use std::{
     collections::{HashSet, VecDeque},
+    io::BufRead as _,
     iter::zip,
     sync::LazyLock,
 };
@@ -21,6 +22,18 @@ impl Node {
     }
 }
 
+enum ParseMapError {
+    IoError(std::io::Error),
+    MissingStartNode,
+    MissingEndNode,
+}
+
+impl From<std::io::Error> for ParseMapError {
+    fn from(value: std::io::Error) -> Self {
+        Self::IoError(value)
+    }
+}
+
 #[derive(Clone)]
 struct Map {
     ants: u32, // TODO: check not 0
@@ -28,6 +41,53 @@ struct Map {
     edges: Vec<Vec<usize>>,
     start: usize,
     end: usize,
+}
+
+impl Map {
+    fn parse() -> Result<Self, ParseMapError> {
+        #[derive(Clone, Copy)]
+        enum ExpectedNode {
+            Start,
+            End,
+        }
+
+        let stdin = std::io::stdin();
+        let mut expected_node = None;
+        let mut start = None;
+        let mut end = None;
+
+        for line in stdin.lock().lines() {
+            let line = line?;
+            let line = line.trim();
+
+            if let Some(expected_node) = expected_node {
+                match expected_node {
+                    ExpectedNode::Start => {
+                        start = Some(Self::parse_node(line)?);
+                    }
+                    ExpectedNode::End => {
+                        end = Some(Self::parse_node(line)?);
+                    }
+                }
+                continue;
+            }
+        }
+
+        let Some(start) = start else {
+            return Err(ParseMapError::MissingStartNode);
+        };
+        let Some(end) = end else {
+            return Err(ParseMapError::MissingEndNode);
+        };
+
+        Ok(Self { ants: todo!(), nodes: todo!(), edges: todo!(), start, end })
+    }
+
+    fn parse_node(line: &str) -> Result<Node, ParseMapError> {
+        todo!()
+    }
+
+    // fn try_parse_comment()
 }
 
 static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
@@ -234,19 +294,7 @@ fn print_moves(map: &Map, paths: &[Path]) {
 }
 
 fn main() {
-    for map in [&MAP_SUBJECT_1, &MAP_SUBJECT_2_2, &MAP_SUBJECT_2_3, &MAP_SUBJECT_3] {
-        let paths_bfs = repeated_bfs(map);
-        let paths_dfs = iterative_deepening_search(map);
-        println!("=== Repeated BFS ===");
-        print_moves(map, &paths_bfs);
-        println!("=== Iterative Deepening Search ===");
-        print_moves(map, &paths_dfs);
-        println!("=== Longest paths ===");
-        let longest_path_bfs = paths_bfs.iter().map(Vec::len).max().unwrap();
-        let longest_path_dfs = paths_dfs.iter().map(Vec::len).max().unwrap();
-        println!("repeated_bfs={longest_path_bfs} naive={longest_path_dfs}");
-        println!("=======================");
-    }
+    let map = Map::parse();
 }
 
 #[cfg(test)]
