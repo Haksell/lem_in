@@ -8,7 +8,7 @@ use std::{
 
 type Path = Vec<usize>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Node {
     name: String,
     // TODO: position for visualizer
@@ -22,10 +22,15 @@ impl Node {
     }
 }
 
+// TODO: remove Debug and impl a clean Display
+#[derive(Debug)]
 enum ParseMapError {
     IoError(std::io::Error),
     MissingStartNode,
     MissingEndNode,
+    InvalidTag(String),
+    MultipleStartNodes,
+    MultipleEndNodes,
 }
 
 impl From<std::io::Error> for ParseMapError {
@@ -34,7 +39,7 @@ impl From<std::io::Error> for ParseMapError {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Map {
     ants: u32, // TODO: check not 0
     nodes: Vec<Node>,
@@ -51,25 +56,45 @@ impl Map {
             End,
         }
 
-        let stdin = std::io::stdin();
         let mut expected_node = None;
+
+        let mut ants = None;
+        let mut nodes = Vec::new();
+        let mut edges = Vec::new();
         let mut start = None;
         let mut end = None;
 
-        for line in stdin.lock().lines() {
-            let line = line?;
-            let line = line.trim();
+        let stdin = std::io::stdin();
+        for res_line in stdin.lock().lines() {
+            let full_line = res_line?;
+            let line = full_line.trim();
 
-            if let Some(expected_node) = expected_node {
+            if let Some(expected_node) = expected_node.take() {
+                let node = Self::parse_node(line)?;
                 match expected_node {
-                    ExpectedNode::Start => {
-                        start = Some(Self::parse_node(line)?);
-                    }
-                    ExpectedNode::End => {
-                        end = Some(Self::parse_node(line)?);
-                    }
+                    ExpectedNode::Start => start = Some(Self::parse_node(line)?),
+                    ExpectedNode::End => end = Some(Self::parse_node(line)?),
                 }
+                nodes.push(node);
                 continue;
+            }
+
+            if line == "##start" {
+                if start.is_some() {
+                    return Err(ParseMapError::MultipleStartNodes);
+                }
+                expected_node = Some(ExpectedNode::Start);
+            }
+
+            if line == "##end" {
+                if end.is_some() {
+                    return Err(ParseMapError::MultipleEndNodes);
+                }
+                expected_node = Some(ExpectedNode::End);
+            }
+
+            if line.starts_with("##") {
+                return Err(ParseMapError::InvalidTag(line.into()));
             }
         }
 
@@ -80,7 +105,7 @@ impl Map {
             return Err(ParseMapError::MissingEndNode);
         };
 
-        Ok(Self { ants: todo!(), nodes: todo!(), edges: todo!(), start, end })
+        Ok(Self { ants: todo!(), nodes, edges: todo!(), start, end })
     }
 
     fn parse_node(line: &str) -> Result<Node, ParseMapError> {
@@ -295,6 +320,7 @@ fn print_moves(map: &Map, paths: &[Path]) {
 
 fn main() {
     let map = Map::parse();
+    println!("{map:?}");
 }
 
 #[cfg(test)]

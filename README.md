@@ -42,6 +42,7 @@ need to avoid traffic jams as well as walking all over their fellow ants
 ## additional tests
 
 - `start=end` => finish immediately (special message)
+- one invalid file for each `MapParseError` variant
 
 ## push check
 
