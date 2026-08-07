@@ -3,8 +3,6 @@
 ## misc
 
 - test parsing profusely
-- node -> room
-- edge -> link
 - check connectivity after parsing?
 - one invalid file for each `MapParseError` variant
 

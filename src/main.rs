@@ -5,7 +5,7 @@ use std::{
 };
 
 type Path = Vec<usize>;
-type Edge = (usize, usize);
+type Link = (usize, usize);
 
 #[derive(Clone, Debug, PartialEq)]
 struct Room {
@@ -32,15 +32,15 @@ enum ParseMapError {
     DuplicateRoomName(String, String),
     InvalidRoomCoordinate(String, char, String),
     InvalidTag(String),
-    InvalidEdgeLine(String),
-    UnknownRoomNameInEdge(String, String),
+    InvalidLinkLine(String),
+    UnknownRoomNameInLink(String, String),
     MultipleStartRooms,
     MultipleEndRooms,
     MissingAntsNumber,
     MissingRooms,
     MissingStartRoom,
     MissingEndRoom,
-    MissingEdges,
+    MissingLinks,
 }
 
 impl From<std::io::Error> for ParseMapError {
@@ -53,7 +53,7 @@ impl From<std::io::Error> for ParseMapError {
 struct Map {
     ants: u32, // TODO: check not 0
     rooms: Vec<Room>,
-    edges: Vec<Vec<usize>>,
+    links: Vec<Vec<usize>>,
     start: usize,
     end: usize,
 }
@@ -69,7 +69,7 @@ impl Map {
             Ants,
             Rooms,
             SpecialRoom(SpecialRoom),
-            Edges,
+            Links,
         }
 
         let mut parsing_state = ParsingState::Ants;
@@ -77,7 +77,7 @@ impl Map {
 
         let mut ants = None;
         let mut rooms = Vec::new();
-        let mut edges = Vec::new();
+        let mut links = Vec::new();
         let mut start = None;
         let mut end = None;
 
@@ -116,15 +116,15 @@ impl Map {
                             room_indices.insert(room.name.clone(), rooms.len());
                             rooms.push(room);
                         }
-                        Err(err_parse_room) => match Self::parse_edge(line, &room_indices) {
+                        Err(err_parse_room) => match Self::parse_link(line, &room_indices) {
                             Ok((room1, room2)) => {
-                                edges = vec![vec![]; rooms.len()];
-                                edges[room1].push(room2);
-                                edges[room2].push(room1);
-                                parsing_state = ParsingState::Edges;
+                                links = vec![vec![]; rooms.len()];
+                                links[room1].push(room2);
+                                links[room2].push(room1);
+                                parsing_state = ParsingState::Links;
                             }
-                            Err(ParseMapError::InvalidEdgeLine(_)) => return Err(err_parse_room),
-                            Err(err_parse_edge) => return Err(err_parse_edge),
+                            Err(ParseMapError::InvalidLinkLine(_)) => return Err(err_parse_room),
+                            Err(err_parse_link) => return Err(err_parse_link),
                         },
                     },
                 },
@@ -139,10 +139,10 @@ impl Map {
                     rooms.push(room);
                     parsing_state = ParsingState::Rooms;
                 }
-                ParsingState::Edges => {
-                    let (room1, room2) = Self::parse_edge(line, &room_indices)?;
-                    edges[room1].push(room2);
-                    edges[room2].push(room1);
+                ParsingState::Links => {
+                    let (room1, room2) = Self::parse_link(line, &room_indices)?;
+                    links[room1].push(room2);
+                    links[room2].push(room1);
                 }
             }
         }
@@ -159,15 +159,15 @@ impl Map {
         let Some(end) = end else {
             return Err(ParseMapError::MissingEndRoom);
         };
-        if edges.is_empty() {
-            return Err(ParseMapError::MissingEdges);
+        if links.is_empty() {
+            return Err(ParseMapError::MissingLinks);
         }
 
-        for neighbors in &mut edges {
+        for neighbors in &mut links {
             neighbors.sort_unstable();
         }
 
-        Ok(Self { ants, rooms, edges, start, end })
+        Ok(Self { ants, rooms, links, start, end })
     }
 
     fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
@@ -202,20 +202,20 @@ impl Map {
         Ok(Room::new(name, coord_x, coord_y))
     }
 
-    fn parse_edge(
+    fn parse_link(
         line: &str,
         room_indices: &HashMap<String, usize>,
-    ) -> Result<Edge, ParseMapError> {
+    ) -> Result<Link, ParseMapError> {
         let parts = line.split('-').collect_vec();
         let &[room1, room2] = parts.as_slice() else {
-            return Err(ParseMapError::InvalidEdgeLine(line.into()));
+            return Err(ParseMapError::InvalidLinkLine(line.into()));
         };
 
         let Some(&idx1) = room_indices.get(room1) else {
-            return Err(ParseMapError::UnknownRoomNameInEdge(line.into(), room1.into()));
+            return Err(ParseMapError::UnknownRoomNameInLink(line.into(), room1.into()));
         };
         let Some(&idx2) = room_indices.get(room2) else {
-            return Err(ParseMapError::UnknownRoomNameInEdge(line.into(), room2.into()));
+            return Err(ParseMapError::UnknownRoomNameInLink(line.into(), room2.into()));
         };
 
         Ok((idx1, idx2))
@@ -247,7 +247,7 @@ fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
     let mut queue = VecDeque::from([(map.start, 0)]);
 
     while let Some((room, time)) = queue.pop_front() {
-        for &neighbor in &map.edges[room] {
+        for &neighbor in &map.links[room] {
             if parents[neighbor].is_some()
                 || used_rooms_by_time
                     .get(time + 1)
@@ -337,7 +337,7 @@ mod tests {
             Room::new("2", 9, 0),
             Room::new("3", 13, 0),
         ],
-        edges: vec![vec![2], vec![3], vec![0, 3], vec![1, 2]],
+        links: vec![vec![2], vec![3], vec![0, 3], vec![1, 2]],
         start: 0,
         end: 1,
     });
@@ -351,7 +351,7 @@ mod tests {
             Room::new("2", 4, 2),
             Room::new("3", 4, 4),
         ],
-        edges: vec![vec![1, 2], vec![0, 3], vec![0, 4], vec![1, 4], vec![2, 3]],
+        links: vec![vec![1, 2], vec![0, 3], vec![0, 4], vec![1, 4], vec![2, 3]],
         start: 1,
         end: 2,
     });
@@ -374,7 +374,7 @@ mod tests {
             Room::new("5", 8, 2),
             Room::new("6", 8, 4),
         ],
-        edges: vec![
+        links: vec![
             vec![1, 3],
             vec![0, 4],
             vec![5, 7],
@@ -420,7 +420,7 @@ mod tests {
             for next_rooms in remaining_rooms
                 .iter()
                 .map(|&room| {
-                    let mut next_rooms = map.edges[room].clone();
+                    let mut next_rooms = map.links[room].clone();
                     next_rooms.push(room);
                     next_rooms
                 })
@@ -465,7 +465,7 @@ mod tests {
                 if seen.contains(&room) {
                     return false;
                 }
-                if room != ants[ant] && !map.edges[ants[ant]].contains(&room) {
+                if room != ants[ant] && !map.links[ants[ant]].contains(&room) {
                     return false;
                 }
                 if room != map.end && room != map.start {
