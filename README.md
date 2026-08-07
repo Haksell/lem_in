@@ -3,7 +3,7 @@
 ## misc
 
 - test parsing profusely
-- check connectivity after parsing?
+- check connectivity after parsing? (at least start->end)
 - one invalid file for each `MapParseError` variant
 
 ## mandatory

@@ -14,7 +14,6 @@ struct Room {
     y: i64,
 }
 
-// TODO: better constructor names
 impl Room {
     fn new(name: impl Into<String>, x: i64, y: i64) -> Self {
         Self { name: name.into(), x, y }
@@ -25,17 +24,22 @@ impl Room {
 #[derive(Debug)]
 enum ParseMapError {
     IoError(std::io::Error),
+    // ants
     InvalidAntsNumber(String),
+    ZeroAnts,
+    // rooms
     InvalidRoomLine(String),
     InvalidCharacterInRoomName(String, char),
     RoomNameStartsWithL(String),
     DuplicateRoomName(String, String),
     InvalidRoomCoordinate(String, char, String),
     InvalidTag(String),
-    InvalidLinkLine(String),
-    UnknownRoomNameInLink(String, String),
     MultipleStartRooms,
     MultipleEndRooms,
+    // links
+    InvalidLinkLine(String),
+    UnknownRoomNameInLink(String, String),
+    // missing
     MissingAntsNumber,
     MissingRooms,
     MissingStartRoom,
@@ -51,7 +55,7 @@ impl From<std::io::Error> for ParseMapError {
 
 #[derive(Clone, Debug, PartialEq)]
 struct Map {
-    ants: u32, // TODO: check not 0
+    ants: u32,
     rooms: Vec<Room>,
     links: Vec<Vec<usize>>,
     start: usize,
@@ -171,7 +175,11 @@ impl Map {
     }
 
     fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
-        line.parse::<u32>().map_err(|_err| ParseMapError::InvalidAntsNumber(line.into()))
+        match line.parse::<u32>() {
+            Ok(0) => Err(ParseMapError::ZeroAnts),
+            Ok(ants) => Ok(ants),
+            Err(_) => Err(ParseMapError::InvalidAntsNumber(line.into())),
+        }
     }
 
     fn parse_room(
