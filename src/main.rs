@@ -20,6 +20,12 @@ impl Room {
     }
 }
 
+#[derive(Debug)]
+enum SpecialRoom {
+    Start,
+    End,
+}
+
 // TODO: remove Debug and impl a clean Display
 #[derive(Debug)]
 enum ParseMapError {
@@ -35,16 +41,14 @@ enum ParseMapError {
     DuplicateRoomName(String, String),
     InvalidRoomCoordinate(String, char, String),
     InvalidCommand(String),
-    MultipleStartRooms,
-    MultipleEndRooms,
+    MultipleSpecialRooms(SpecialRoom),
     // links
     InvalidLinkLine(String),
     UnknownRoomNameInLink(String, String),
     // missing
     MissingAntsNumber,
     MissingRooms,
-    MissingStartRoom,
-    MissingEndRoom,
+    MissingSpecialRoom(SpecialRoom),
     MissingLinks,
 }
 
@@ -65,11 +69,6 @@ struct Map {
 
 impl Map {
     fn parse() -> Result<Self, ParseMapError> {
-        enum SpecialRoom {
-            Start,
-            End,
-        }
-
         enum ParsingState {
             Ants,
             Rooms,
@@ -93,7 +92,6 @@ impl Map {
             if line.is_empty() {
                 return Err(ParseMapError::EmptyLine(line_number + 1));
             }
-
             if line.starts_with('#') && !line.starts_with("##") {
                 continue;
             }
@@ -106,13 +104,13 @@ impl Map {
                 ParsingState::Rooms => match line {
                     "##start" => {
                         if start.is_some() {
-                            return Err(ParseMapError::MultipleStartRooms);
+                            return Err(ParseMapError::MultipleSpecialRooms(SpecialRoom::Start));
                         }
                         parsing_state = ParsingState::SpecialRoom(SpecialRoom::Start);
                     }
                     "##end" => {
                         if end.is_some() {
-                            return Err(ParseMapError::MultipleEndRooms);
+                            return Err(ParseMapError::MultipleSpecialRooms(SpecialRoom::End));
                         }
                         parsing_state = ParsingState::SpecialRoom(SpecialRoom::End);
                     }
@@ -162,10 +160,10 @@ impl Map {
             return Err(ParseMapError::MissingRooms);
         }
         let Some(start) = start else {
-            return Err(ParseMapError::MissingStartRoom);
+            return Err(ParseMapError::MissingSpecialRoom(SpecialRoom::Start));
         };
         let Some(end) = end else {
-            return Err(ParseMapError::MissingEndRoom);
+            return Err(ParseMapError::MissingSpecialRoom(SpecialRoom::End));
         };
         if links.is_empty() {
             return Err(ParseMapError::MissingLinks);
