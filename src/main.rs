@@ -24,6 +24,7 @@ impl Room {
 #[derive(Debug)]
 enum ParseMapError {
     IoError(std::io::Error),
+    EmptyLine(usize),
     // ants
     InvalidAntsNumber(String),
     ZeroAnts,
@@ -86,9 +87,12 @@ impl Map {
         let mut end = None;
 
         let stdin = std::io::stdin();
-        for res_line in stdin.lock().lines() {
+        for (line_number, res_line) in stdin.lock().lines().enumerate() {
             let full_line = res_line?;
             let line = full_line.trim();
+            if line.is_empty() {
+                return Err(ParseMapError::EmptyLine(line_number + 1));
+            }
 
             if line.starts_with('#') && !line.starts_with("##") {
                 continue;
