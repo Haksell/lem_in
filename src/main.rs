@@ -13,13 +13,18 @@ type Edge = (usize, usize);
 struct Node {
     name: String,
     // TODO: position for visualizer
-    // x: i64,
-    // y: i64,
+    x: i64,
+    y: i64,
 }
 
+// TODO: better constructor names
 impl Node {
-    fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into() }
+    fn new(name: impl Into<String>, x: i64, y: i64) -> Self {
+        Self { name: name.into(), x, y }
+    }
+
+    fn origin(name: impl Into<String>) -> Self {
+        Self { name: name.into(), x: 0, y: 0 }
     }
 }
 
@@ -27,13 +32,18 @@ impl Node {
 #[derive(Debug)]
 enum ParseMapError {
     IoError(std::io::Error),
-    MissingStartNode,
-    MissingEndNode,
+    InvalidAntsNumber(String),
+    InvalidNodeLine(String),
+    InvalidCharacterInNodeName(String, char),
+    NodeNameStartsWithL(String),
+    InvalidNodeCoordinate(String, char, String),
     InvalidTag(String),
     MultipleStartNodes,
     MultipleEndNodes,
     MissingAntsNumber,
     MissingNodes,
+    MissingStartNode,
+    MissingEndNode,
     MissingEdges,
 }
 
@@ -85,7 +95,7 @@ impl Map {
 
             match parsing_state {
                 ParsingState::Ants => {
-                    ants = Some(parse_ants(line)?);
+                    ants = Some(Self::parse_ants(line)?);
                     parsing_state = ParsingState::Nodes;
                 }
                 ParsingState::Nodes => match line {
@@ -127,7 +137,11 @@ impl Map {
                     nodes.push(node);
                     parsing_state = ParsingState::Nodes;
                 }
-                ParsingState::Edges => todo!(),
+                ParsingState::Edges => {
+                    let (node1, node2) = Self::parse_edge(line)?;
+                    edges[node1].push(node2);
+                    edges[node2].push(node1);
+                }
             }
         }
 
@@ -147,11 +161,38 @@ impl Map {
             return Err(ParseMapError::MissingEdges);
         }
 
+        for neighbors in &mut edges {
+            neighbors.sort_unstable();
+        }
+
         Ok(Self { ants, nodes, edges, start, end })
     }
 
+    fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
+        line.parse::<u32>().map_err(|_err| ParseMapError::InvalidAntsNumber(line.into()))
+    }
+
+    // TODO: '-' forbidden in node name or starting with 'L'
     fn parse_node(line: &str) -> Result<Node, ParseMapError> {
-        todo!()
+        let parts = line.split_whitespace().collect_vec();
+        let &[name, coord_x, coord_y] = parts.as_slice() else {
+            return Err(ParseMapError::InvalidNodeLine(line.into()));
+        };
+
+        if let Some(invalid_char) = name.chars().find(|&c| !c.is_ascii_alphanumeric() && c != '_') {
+            return Err(ParseMapError::InvalidCharacterInNodeName(line.into(), invalid_char));
+        }
+        if name.starts_with('L') {
+            return Err(ParseMapError::NodeNameStartsWithL(line.into()));
+        }
+        let Ok(coord_x) = coord_x.parse() else {
+            return Err(ParseMapError::InvalidNodeCoordinate(line.into(), 'x', coord_x.into()));
+        };
+        let Ok(coord_y) = coord_y.parse() else {
+            return Err(ParseMapError::InvalidNodeCoordinate(line.into(), 'y', coord_y.into()));
+        };
+
+        Ok(Node::new(name, coord_x, coord_y))
     }
 
     fn parse_edge(line: &str) -> Result<Edge, ParseMapError> {
@@ -159,13 +200,9 @@ impl Map {
     }
 }
 
-fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
-    todo!()
-}
-
 static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 3,
-    nodes: vec![Node::new("0"), Node::new("1"), Node::new("2"), Node::new("3")],
+    nodes: vec![Node::origin("0"), Node::origin("1"), Node::origin("2"), Node::origin("3")],
     edges: vec![vec![2], vec![3], vec![3], vec![1, 2]],
     start: 0,
     end: 1,
@@ -173,7 +210,13 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
 
 static MAP_SUBJECT_2_2: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 2,
-    nodes: vec![Node::new("1"), Node::new("0"), Node::new("4"), Node::new("2"), Node::new("3")],
+    nodes: vec![
+        Node::origin("1"),
+        Node::origin("0"),
+        Node::origin("4"),
+        Node::origin("2"),
+        Node::origin("3"),
+    ],
     edges: vec![vec![1, 2], vec![0, 3], vec![0, 4], vec![1, 4], vec![2, 3]],
     start: 1,
     end: 2,
@@ -188,14 +231,14 @@ static MAP_SUBJECT_2_3: LazyLock<Map> = LazyLock::new(|| {
 static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 4,
     nodes: vec![
-        Node::new("3"),
-        Node::new("start"),
-        Node::new("end"),
-        Node::new("4"),
-        Node::new("1"),
-        Node::new("2"),
-        Node::new("5"),
-        Node::new("6"),
+        Node::origin("3"),
+        Node::origin("start"),
+        Node::origin("end"),
+        Node::origin("4"),
+        Node::origin("1"),
+        Node::origin("2"),
+        Node::origin("5"),
+        Node::origin("6"),
     ],
     edges: vec![
         vec![1, 3],
@@ -368,7 +411,7 @@ fn print_moves(map: &Map, paths: &[Path]) {
 
 fn main() {
     let map = Map::parse();
-    println!("{map:?}");
+    println!("{map:#?}");
 }
 
 #[cfg(test)]
