@@ -33,7 +33,7 @@ enum ParseMapError {
     RoomNameStartsWithL(String),
     DuplicateRoomName(String, String),
     InvalidRoomCoordinate(String, char, String),
-    InvalidTag(String),
+    InvalidCommand(String),
     MultipleStartRooms,
     MultipleEndRooms,
     // links
@@ -113,7 +113,7 @@ impl Map {
                         parsing_state = ParsingState::SpecialRoom(SpecialRoom::End);
                     }
                     line if line.starts_with("##") => {
-                        return Err(ParseMapError::InvalidTag(line.into()));
+                        return Err(ParseMapError::InvalidCommand(line.into()));
                     }
                     _ => match Self::parse_room(line, &room_indices) {
                         Ok(room) => {
