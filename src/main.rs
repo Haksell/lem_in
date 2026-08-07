@@ -9,10 +9,9 @@ use std::{
 type Path = Vec<usize>;
 type Edge = (usize, usize);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Node {
     name: String,
-    // TODO: position for visualizer
     x: i64,
     y: i64,
 }
@@ -56,7 +55,7 @@ impl From<std::io::Error> for ParseMapError {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Map {
     ants: u32, // TODO: check not 0
     nodes: Vec<Node>,
@@ -129,6 +128,7 @@ impl Map {
                                 edges = vec![vec![]; nodes.len()];
                                 edges[node1].push(node2);
                                 edges[node2].push(node1);
+                                parsing_state = ParsingState::Edges;
                             }
                             Err(ParseMapError::InvalidEdgeLine(_)) => return Err(err_parse_node),
                             Err(err_parse_edge) => return Err(err_parse_edge),
@@ -232,8 +232,13 @@ impl Map {
 
 static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 3,
-    nodes: vec![Node::origin("0"), Node::origin("1"), Node::origin("2"), Node::origin("3")],
-    edges: vec![vec![2], vec![3], vec![3], vec![1, 2]],
+    nodes: vec![
+        Node::new("0", 1, 0),
+        Node::new("1", 5, 0),
+        Node::new("2", 9, 0),
+        Node::new("3", 13, 0),
+    ],
+    edges: vec![vec![2], vec![3], vec![0, 3], vec![1, 2]],
     start: 0,
     end: 1,
 });
@@ -241,11 +246,11 @@ static MAP_SUBJECT_1: LazyLock<Map> = LazyLock::new(|| Map {
 static MAP_SUBJECT_2_2: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 2,
     nodes: vec![
-        Node::origin("1"),
-        Node::origin("0"),
-        Node::origin("4"),
-        Node::origin("2"),
-        Node::origin("3"),
+        Node::new("1", 0, 2),
+        Node::new("0", 2, 0),
+        Node::new("4", 2, 6),
+        Node::new("2", 4, 2),
+        Node::new("3", 4, 4),
     ],
     edges: vec![vec![1, 2], vec![0, 3], vec![0, 4], vec![1, 4], vec![2, 3]],
     start: 1,
@@ -261,14 +266,14 @@ static MAP_SUBJECT_2_3: LazyLock<Map> = LazyLock::new(|| {
 static MAP_SUBJECT_3: LazyLock<Map> = LazyLock::new(|| Map {
     ants: 4,
     nodes: vec![
-        Node::origin("3"),
-        Node::origin("start"),
-        Node::origin("end"),
-        Node::origin("4"),
-        Node::origin("1"),
-        Node::origin("2"),
-        Node::origin("5"),
-        Node::origin("6"),
+        Node::new("3", 2, 2),
+        Node::new("start", 4, 0),
+        Node::new("end", 4, 6),
+        Node::new("4", 0, 4),
+        Node::new("1", 4, 2),
+        Node::new("2", 4, 4),
+        Node::new("5", 8, 2),
+        Node::new("6", 8, 4),
     ],
     edges: vec![
         vec![1, 3],
@@ -439,9 +444,13 @@ fn print_moves(map: &Map, paths: &[Path]) {
     }
 }
 
+#[expect(clippy::print_stderr)]
 fn main() {
-    let map = Map::parse();
-    println!("{map:#?}");
+    let map = Map::parse().unwrap_or_else(|err| {
+        eprintln!("Failed to parse map from stdin:");
+        eprintln!("{err:?}"); // TODO: Debug -> Display
+        std::process::exit(1);
+    });
 }
 
 #[cfg(test)]
