@@ -2,10 +2,11 @@
 
 ## misc
 
+- test with irrelevant disconnected component
 - test parsing profusely
-- check connectivity after parsing? (at least start->end)
 - print the input
 - one invalid file for each `MapParseError` variant
+- `MapParseError`: `Debug` -> `Display`
 
 ## mandatory
 

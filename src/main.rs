@@ -31,6 +31,7 @@ enum SpecialRoom {
 enum ParseMapError {
     IoError(std::io::Error),
     EmptyLine(usize),
+    Disconnected(Map),
     // ants
     InvalidAntsNumber(String),
     ZeroAnts,
@@ -167,7 +168,8 @@ impl Map {
             neighbors.sort_unstable();
         }
 
-        Ok(Self { ants, rooms, links, start, end })
+        let map = Self { ants, rooms, links, start, end };
+        if map.is_connected() { Ok(map) } else { Err(ParseMapError::Disconnected(map)) }
     }
 
     fn parse_ants(line: &str) -> Result<u32, ParseMapError> {
@@ -223,6 +225,27 @@ impl Map {
         };
 
         Ok((idx1, idx2))
+    }
+
+    fn is_connected(&self) -> bool {
+        let mut seen = vec![false; self.rooms.len()];
+        seen[self.start] = true;
+
+        let mut stack = vec![self.start];
+        while let Some(room) = stack.pop() {
+            for &neighbor in &self.links[room] {
+                if neighbor == self.end {
+                    return true;
+                }
+                if seen[neighbor] {
+                    continue;
+                }
+                seen[neighbor] = true;
+                stack.push(neighbor);
+            }
+        }
+
+        false
     }
 }
 
