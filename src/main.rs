@@ -339,6 +339,30 @@ fn print_moves(map: &Map, paths: &[Path]) {
     }
 }
 
+fn solves(map: &Map, paths: &[Path]) -> bool {
+    let max_path = paths.iter().map(Vec::len).max().unwrap();
+    let mut ants = vec![map.start; map.ants as usize];
+    for time in 1..max_path {
+        let mut seen = HashSet::new();
+        for (ant, path) in paths.iter().enumerate() {
+            let Some(&room) = path.get(time) else {
+                continue;
+            };
+            if seen.contains(&room) {
+                return false;
+            }
+            if room != ants[ant] && !map.links[ants[ant]].contains(&room) {
+                return false;
+            }
+            if room != map.end && room != map.start {
+                seen.insert(room);
+            }
+            ants[ant] = room;
+        }
+    }
+    true
+}
+
 #[expect(clippy::print_stderr)]
 fn main() {
     let map = Map::parse().unwrap_or_else(|err| {
@@ -346,6 +370,7 @@ fn main() {
         std::process::exit(1);
     });
     let paths = repeated_bfs(&map);
+    debug_assert!(solves(&map, &paths));
     print_moves(&map, &paths);
 }
 
@@ -478,30 +503,6 @@ mod tests {
         }
 
         unreachable!()
-    }
-
-    fn solves(map: &Map, paths: &[Path]) -> bool {
-        let max_path = paths.iter().map(Vec::len).max().unwrap();
-        let mut ants = vec![map.start; map.ants as usize];
-        for time in 1..max_path {
-            let mut seen = HashSet::new();
-            for (ant, path) in paths.iter().enumerate() {
-                let Some(&room) = path.get(time) else {
-                    continue;
-                };
-                if seen.contains(&room) {
-                    return false;
-                }
-                if room != ants[ant] && !map.links[ants[ant]].contains(&room) {
-                    return false;
-                }
-                if room != map.end && room != map.start {
-                    seen.insert(room);
-                }
-                ants[ant] = room;
-            }
-        }
-        true
     }
 
     fn check_map_with_solver(solver: Solver, map: &Map, expected_time: usize) {
