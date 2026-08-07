@@ -2,6 +2,7 @@
 
 ## misc
 
+- test parsing profusely
 - check connectivity after parsing?
 - one invalid file for each `MapParseError` variant
 

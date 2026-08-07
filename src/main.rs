@@ -1,6 +1,6 @@
 use itertools::Itertools as _;
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     io::BufRead as _,
     iter::zip,
     sync::LazyLock,
@@ -36,8 +36,11 @@ enum ParseMapError {
     InvalidNodeLine(String),
     InvalidCharacterInNodeName(String, char),
     NodeNameStartsWithL(String),
+    DuplicateNodeName(String, String),
     InvalidNodeCoordinate(String, char, String),
     InvalidTag(String),
+    InvalidEdgeLine(String),
+    UnknownNodeNameInEdge(String, String),
     MultipleStartNodes,
     MultipleEndNodes,
     MissingAntsNumber,
@@ -78,6 +81,8 @@ impl Map {
 
         let mut parsing_state = ParsingState::Ants;
 
+        let mut node_indices = HashMap::new();
+
         let mut ants = None;
         let mut nodes = Vec::new();
         let mut edges = Vec::new();
@@ -114,31 +119,35 @@ impl Map {
                     line if line.starts_with("##") => {
                         return Err(ParseMapError::InvalidTag(line.into()));
                     }
-                    _ => match Self::parse_node(line) {
-                        Ok(node) => nodes.push(node),
-                        Err(err_parse_node) => match Self::parse_edge(line) {
+                    _ => match Self::parse_node(line, &node_indices) {
+                        Ok(node) => {
+                            node_indices.insert(node.name.clone(), nodes.len());
+                            nodes.push(node);
+                        }
+                        Err(err_parse_node) => match Self::parse_edge(line, &node_indices) {
                             Ok((node1, node2)) => {
                                 edges = vec![vec![]; nodes.len()];
                                 edges[node1].push(node2);
                                 edges[node2].push(node1);
                             }
-                            // TODO: return err_parse_edge depending on circumstances
-                            Err(err_parse_edge) => return Err(err_parse_node),
+                            Err(ParseMapError::InvalidEdgeLine(_)) => return Err(err_parse_node),
+                            Err(err_parse_edge) => return Err(err_parse_edge),
                         },
                     },
                 },
                 ParsingState::SpecialNode(special_node) => {
-                    let node = Self::parse_node(line)?;
+                    let node = Self::parse_node(line, &node_indices)?;
                     let special_node_idx = Some(nodes.len());
                     match special_node {
                         SpecialNode::Start => start = special_node_idx,
                         SpecialNode::End => end = special_node_idx,
                     }
+                    node_indices.insert(node.name.clone(), nodes.len());
                     nodes.push(node);
                     parsing_state = ParsingState::Nodes;
                 }
                 ParsingState::Edges => {
-                    let (node1, node2) = Self::parse_edge(line)?;
+                    let (node1, node2) = Self::parse_edge(line, &node_indices)?;
                     edges[node1].push(node2);
                     edges[node2].push(node1);
                 }
@@ -173,7 +182,10 @@ impl Map {
     }
 
     // TODO: '-' forbidden in node name or starting with 'L'
-    fn parse_node(line: &str) -> Result<Node, ParseMapError> {
+    fn parse_node(
+        line: &str,
+        node_indices: &HashMap<String, usize>,
+    ) -> Result<Node, ParseMapError> {
         let parts = line.split_whitespace().collect_vec();
         let &[name, coord_x, coord_y] = parts.as_slice() else {
             return Err(ParseMapError::InvalidNodeLine(line.into()));
@@ -185,6 +197,9 @@ impl Map {
         if name.starts_with('L') {
             return Err(ParseMapError::NodeNameStartsWithL(line.into()));
         }
+        if node_indices.contains_key(name) {
+            return Err(ParseMapError::DuplicateNodeName(line.into(), name.into()));
+        }
         let Ok(coord_x) = coord_x.parse() else {
             return Err(ParseMapError::InvalidNodeCoordinate(line.into(), 'x', coord_x.into()));
         };
@@ -195,8 +210,23 @@ impl Map {
         Ok(Node::new(name, coord_x, coord_y))
     }
 
-    fn parse_edge(line: &str) -> Result<Edge, ParseMapError> {
-        todo!()
+    fn parse_edge(
+        line: &str,
+        node_indices: &HashMap<String, usize>,
+    ) -> Result<Edge, ParseMapError> {
+        let parts = line.split('-').collect_vec();
+        let &[node1, node2] = parts.as_slice() else {
+            return Err(ParseMapError::InvalidEdgeLine(line.into()));
+        };
+
+        let Some(&idx1) = node_indices.get(node1) else {
+            return Err(ParseMapError::UnknownNodeNameInEdge(line.into(), node1.into()));
+        };
+        let Some(&idx2) = node_indices.get(node2) else {
+            return Err(ParseMapError::UnknownNodeNameInEdge(line.into(), node2.into()));
+        };
+
+        Ok((idx1, idx2))
     }
 }
 
