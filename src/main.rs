@@ -26,20 +26,20 @@ impl Room {
 enum ParseMapError {
     IoError(std::io::Error),
     InvalidAntsNumber(String),
-    InvalidNodeLine(String),
-    InvalidCharacterInNodeName(String, char),
-    NodeNameStartsWithL(String),
-    DuplicateNodeName(String, String),
-    InvalidNodeCoordinate(String, char, String),
+    InvalidRoomLine(String),
+    InvalidCharacterInRoomName(String, char),
+    RoomNameStartsWithL(String),
+    DuplicateRoomName(String, String),
+    InvalidRoomCoordinate(String, char, String),
     InvalidTag(String),
     InvalidEdgeLine(String),
-    UnknownNodeNameInEdge(String, String),
-    MultipleStartNodes,
-    MultipleEndNodes,
+    UnknownRoomNameInEdge(String, String),
+    MultipleStartRooms,
+    MultipleEndRooms,
     MissingAntsNumber,
-    MissingNodes,
-    MissingStartNode,
-    MissingEndNode,
+    MissingRooms,
+    MissingStartRoom,
+    MissingEndRoom,
     MissingEdges,
 }
 
@@ -98,51 +98,51 @@ impl Map {
                 ParsingState::Rooms => match line {
                     "##start" => {
                         if start.is_some() {
-                            return Err(ParseMapError::MultipleStartNodes);
+                            return Err(ParseMapError::MultipleStartRooms);
                         }
                         parsing_state = ParsingState::SpecialRoom(SpecialRoom::Start);
                     }
                     "##end" => {
                         if end.is_some() {
-                            return Err(ParseMapError::MultipleEndNodes);
+                            return Err(ParseMapError::MultipleEndRooms);
                         }
                         parsing_state = ParsingState::SpecialRoom(SpecialRoom::End);
                     }
                     line if line.starts_with("##") => {
                         return Err(ParseMapError::InvalidTag(line.into()));
                     }
-                    _ => match Self::parse_node(line, &room_indices) {
+                    _ => match Self::parse_room(line, &room_indices) {
                         Ok(room) => {
                             room_indices.insert(room.name.clone(), rooms.len());
                             rooms.push(room);
                         }
-                        Err(err_parse_node) => match Self::parse_edge(line, &room_indices) {
-                            Ok((node1, node2)) => {
+                        Err(err_parse_room) => match Self::parse_edge(line, &room_indices) {
+                            Ok((room1, room2)) => {
                                 edges = vec![vec![]; rooms.len()];
-                                edges[node1].push(node2);
-                                edges[node2].push(node1);
+                                edges[room1].push(room2);
+                                edges[room2].push(room1);
                                 parsing_state = ParsingState::Edges;
                             }
-                            Err(ParseMapError::InvalidEdgeLine(_)) => return Err(err_parse_node),
+                            Err(ParseMapError::InvalidEdgeLine(_)) => return Err(err_parse_room),
                             Err(err_parse_edge) => return Err(err_parse_edge),
                         },
                     },
                 },
-                ParsingState::SpecialRoom(special_node) => {
-                    let room = Self::parse_node(line, &room_indices)?;
-                    let special_node_idx = Some(rooms.len());
-                    match special_node {
-                        SpecialRoom::Start => start = special_node_idx,
-                        SpecialRoom::End => end = special_node_idx,
+                ParsingState::SpecialRoom(special_room) => {
+                    let room = Self::parse_room(line, &room_indices)?;
+                    let special_room_idx = Some(rooms.len());
+                    match special_room {
+                        SpecialRoom::Start => start = special_room_idx,
+                        SpecialRoom::End => end = special_room_idx,
                     }
                     room_indices.insert(room.name.clone(), rooms.len());
                     rooms.push(room);
                     parsing_state = ParsingState::Rooms;
                 }
                 ParsingState::Edges => {
-                    let (node1, node2) = Self::parse_edge(line, &room_indices)?;
-                    edges[node1].push(node2);
-                    edges[node2].push(node1);
+                    let (room1, room2) = Self::parse_edge(line, &room_indices)?;
+                    edges[room1].push(room2);
+                    edges[room2].push(room1);
                 }
             }
         }
@@ -151,13 +151,13 @@ impl Map {
             return Err(ParseMapError::MissingAntsNumber);
         };
         if rooms.is_empty() {
-            return Err(ParseMapError::MissingNodes);
+            return Err(ParseMapError::MissingRooms);
         }
         let Some(start) = start else {
-            return Err(ParseMapError::MissingStartNode);
+            return Err(ParseMapError::MissingStartRoom);
         };
         let Some(end) = end else {
-            return Err(ParseMapError::MissingEndNode);
+            return Err(ParseMapError::MissingEndRoom);
         };
         if edges.is_empty() {
             return Err(ParseMapError::MissingEdges);
@@ -174,30 +174,29 @@ impl Map {
         line.parse::<u32>().map_err(|_err| ParseMapError::InvalidAntsNumber(line.into()))
     }
 
-    // TODO: '-' forbidden in room name or starting with 'L'
-    fn parse_node(
+    fn parse_room(
         line: &str,
-        node_indices: &HashMap<String, usize>,
+        room_indices: &HashMap<String, usize>,
     ) -> Result<Room, ParseMapError> {
         let parts = line.split_whitespace().collect_vec();
         let &[name, coord_x, coord_y] = parts.as_slice() else {
-            return Err(ParseMapError::InvalidNodeLine(line.into()));
+            return Err(ParseMapError::InvalidRoomLine(line.into()));
         };
 
         if let Some(invalid_char) = name.chars().find(|&c| !c.is_ascii_alphanumeric() && c != '_') {
-            return Err(ParseMapError::InvalidCharacterInNodeName(line.into(), invalid_char));
+            return Err(ParseMapError::InvalidCharacterInRoomName(line.into(), invalid_char));
         }
         if name.starts_with('L') {
-            return Err(ParseMapError::NodeNameStartsWithL(line.into()));
+            return Err(ParseMapError::RoomNameStartsWithL(line.into()));
         }
-        if node_indices.contains_key(name) {
-            return Err(ParseMapError::DuplicateNodeName(line.into(), name.into()));
+        if room_indices.contains_key(name) {
+            return Err(ParseMapError::DuplicateRoomName(line.into(), name.into()));
         }
         let Ok(coord_x) = coord_x.parse() else {
-            return Err(ParseMapError::InvalidNodeCoordinate(line.into(), 'x', coord_x.into()));
+            return Err(ParseMapError::InvalidRoomCoordinate(line.into(), 'x', coord_x.into()));
         };
         let Ok(coord_y) = coord_y.parse() else {
-            return Err(ParseMapError::InvalidNodeCoordinate(line.into(), 'y', coord_y.into()));
+            return Err(ParseMapError::InvalidRoomCoordinate(line.into(), 'y', coord_y.into()));
         };
 
         Ok(Room::new(name, coord_x, coord_y))
@@ -205,18 +204,18 @@ impl Map {
 
     fn parse_edge(
         line: &str,
-        node_indices: &HashMap<String, usize>,
+        room_indices: &HashMap<String, usize>,
     ) -> Result<Edge, ParseMapError> {
         let parts = line.split('-').collect_vec();
-        let &[node1, node2] = parts.as_slice() else {
+        let &[room1, room2] = parts.as_slice() else {
             return Err(ParseMapError::InvalidEdgeLine(line.into()));
         };
 
-        let Some(&idx1) = node_indices.get(node1) else {
-            return Err(ParseMapError::UnknownNodeNameInEdge(line.into(), node1.into()));
+        let Some(&idx1) = room_indices.get(room1) else {
+            return Err(ParseMapError::UnknownRoomNameInEdge(line.into(), room1.into()));
         };
-        let Some(&idx2) = node_indices.get(node2) else {
-            return Err(ParseMapError::UnknownNodeNameInEdge(line.into(), node2.into()));
+        let Some(&idx2) = room_indices.get(room2) else {
+            return Err(ParseMapError::UnknownRoomNameInEdge(line.into(), room2.into()));
         };
 
         Ok((idx1, idx2))
@@ -228,11 +227,11 @@ fn reconstruct_path(parents: &[Option<(usize, usize)>], start: usize, end: usize
     let mut room = end;
     let mut time = 0;
     while room != start {
-        let (previous_node, previous_time) = parents[room].unwrap();
+        let (previous_room, previous_time) = parents[room].unwrap();
         for _ in previous_time..time {
             path.push(room);
         }
-        room = previous_node;
+        room = previous_room;
         time = previous_time;
     }
     for _ in 0..time {
@@ -242,7 +241,7 @@ fn reconstruct_path(parents: &[Option<(usize, usize)>], start: usize, end: usize
     path
 }
 
-fn bfs(map: &Map, used_nodes_by_time: &[HashSet<usize>]) -> Path {
+fn bfs(map: &Map, used_rooms_by_time: &[HashSet<usize>]) -> Path {
     let mut parents = vec![None; map.rooms.len()];
     parents[map.start] = Some((map.start, 0));
     let mut queue = VecDeque::from([(map.start, 0)]);
@@ -250,9 +249,9 @@ fn bfs(map: &Map, used_nodes_by_time: &[HashSet<usize>]) -> Path {
     while let Some((room, time)) = queue.pop_front() {
         for &neighbor in &map.edges[room] {
             if parents[neighbor].is_some()
-                || used_nodes_by_time
+                || used_rooms_by_time
                     .get(time + 1)
-                    .is_some_and(|used_nodes| used_nodes.contains(&neighbor))
+                    .is_some_and(|used_rooms| used_rooms.contains(&neighbor))
             {
                 continue;
             }
@@ -269,21 +268,21 @@ fn bfs(map: &Map, used_nodes_by_time: &[HashSet<usize>]) -> Path {
     unreachable!("TODO: handle disconnected graph")
 }
 
-fn update_used_nodes(used_nodes_by_time: &mut Vec<HashSet<usize>>, path: &Path) {
+fn update_used_rooms(used_rooms_by_time: &mut Vec<HashSet<usize>>, path: &Path) {
     for time in 1..path.len() - 1 {
-        while used_nodes_by_time.len() <= time {
-            used_nodes_by_time.push(HashSet::new());
+        while used_rooms_by_time.len() <= time {
+            used_rooms_by_time.push(HashSet::new());
         }
-        used_nodes_by_time[time].insert(path[time]);
+        used_rooms_by_time[time].insert(path[time]);
     }
 }
 
 fn repeated_bfs(map: &Map) -> Vec<Path> {
     let mut paths = Vec::new();
-    let mut used_nodes_by_time = vec![];
+    let mut used_rooms_by_time = vec![];
     for _ in 0..map.ants {
-        let path = bfs(map, &used_nodes_by_time);
-        update_used_nodes(&mut used_nodes_by_time, &path);
+        let path = bfs(map, &used_rooms_by_time);
+        update_used_rooms(&mut used_rooms_by_time, &path);
         paths.push(path);
     }
     paths
@@ -391,15 +390,15 @@ mod tests {
 
     /// Exponential but provably optimal solver to compare against faster solvers.
     fn iterative_deepening_search(map: &Map) -> Vec<Path> {
-        fn valid_next_nodes(next_nodes: &[usize], map: &Map) -> bool {
+        fn valid_next_rooms(next_rooms: &[usize], map: &Map) -> bool {
             let mut seen = HashSet::new();
 
-            for next_node in next_nodes {
-                if seen.contains(next_node) {
+            for next_room in next_rooms {
+                if seen.contains(next_room) {
                     return false;
                 }
-                if *next_node != map.end && *next_node != map.start {
-                    seen.insert(next_node);
+                if *next_room != map.end && *next_room != map.start {
+                    seen.insert(next_room);
                 }
             }
 
@@ -411,25 +410,25 @@ mod tests {
                 return paths.iter().all(|path| path[path.len() - 1] == map.end);
             }
 
-            let (remaining_ants, remaining_nodes): (Vec<_>, Vec<_>) = paths
+            let (remaining_ants, remaining_rooms): (Vec<_>, Vec<_>) = paths
                 .iter()
                 .enumerate()
                 .map(|(ant, path)| (ant, path[path.len() - 1]))
                 .filter(|(_, room)| *room != map.end)
                 .unzip();
 
-            for next_nodes in remaining_nodes
+            for next_rooms in remaining_rooms
                 .iter()
                 .map(|&room| {
-                    let mut next_nodes = map.edges[room].clone();
-                    next_nodes.push(room);
-                    next_nodes
+                    let mut next_rooms = map.edges[room].clone();
+                    next_rooms.push(room);
+                    next_rooms
                 })
                 .multi_cartesian_product()
-                .filter(|next_nodes| valid_next_nodes(next_nodes, map))
+                .filter(|next_rooms| valid_next_rooms(next_rooms, map))
             {
-                for (&ant, next_node) in zip(&remaining_ants, next_nodes) {
-                    paths[ant].push(next_node);
+                for (&ant, next_room) in zip(&remaining_ants, next_rooms) {
+                    paths[ant].push(next_room);
                 }
 
                 if dfs(map, paths, depth - 1) {
