@@ -101,37 +101,31 @@ impl Map {
                     ants = Some(Self::parse_ants(line)?);
                     parsing_state = ParsingState::Rooms;
                 }
-                ParsingState::Rooms => match line {
-                    "##start" => {
-                        if start.is_some() {
-                            return Err(ParseMapError::MultipleSpecialRooms(SpecialRoom::Start));
-                        }
-                        parsing_state = ParsingState::SpecialRoom(SpecialRoom::Start);
+                ParsingState::Rooms if line.starts_with("##") => {
+                    let (special_room, special_room_type) = match line {
+                        "##start" => (start, SpecialRoom::Start),
+                        "##end" => (end, SpecialRoom::End),
+                        _ => return Err(ParseMapError::InvalidCommand(line.into())),
+                    };
+                    if special_room.is_some() {
+                        return Err(ParseMapError::MultipleSpecialRooms(special_room_type));
                     }
-                    "##end" => {
-                        if end.is_some() {
-                            return Err(ParseMapError::MultipleSpecialRooms(SpecialRoom::End));
-                        }
-                        parsing_state = ParsingState::SpecialRoom(SpecialRoom::End);
+                    parsing_state = ParsingState::SpecialRoom(special_room_type);
+                }
+                ParsingState::Rooms => match Self::parse_room(line, &room_indices) {
+                    Ok(room) => {
+                        room_indices.insert(room.name.clone(), rooms.len());
+                        rooms.push(room);
                     }
-                    line if line.starts_with("##") => {
-                        return Err(ParseMapError::InvalidCommand(line.into()));
-                    }
-                    _ => match Self::parse_room(line, &room_indices) {
-                        Ok(room) => {
-                            room_indices.insert(room.name.clone(), rooms.len());
-                            rooms.push(room);
+                    Err(err_parse_room) => match Self::parse_link(line, &room_indices) {
+                        Ok((room1, room2)) => {
+                            links = vec![vec![]; rooms.len()];
+                            links[room1].push(room2);
+                            links[room2].push(room1);
+                            parsing_state = ParsingState::Links;
                         }
-                        Err(err_parse_room) => match Self::parse_link(line, &room_indices) {
-                            Ok((room1, room2)) => {
-                                links = vec![vec![]; rooms.len()];
-                                links[room1].push(room2);
-                                links[room2].push(room1);
-                                parsing_state = ParsingState::Links;
-                            }
-                            Err(ParseMapError::InvalidLinkLine(_)) => return Err(err_parse_room),
-                            Err(err_parse_link) => return Err(err_parse_link),
-                        },
+                        Err(ParseMapError::InvalidLinkLine(_)) => return Err(err_parse_room),
+                        Err(err_parse_link) => return Err(err_parse_link),
                     },
                 },
                 ParsingState::SpecialRoom(special_room) => {
