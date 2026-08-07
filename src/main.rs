@@ -21,10 +21,6 @@ impl Node {
     fn new(name: impl Into<String>, x: i64, y: i64) -> Self {
         Self { name: name.into(), x, y }
     }
-
-    fn origin(name: impl Into<String>) -> Self {
-        Self { name: name.into(), x: 0, y: 0 }
-    }
 }
 
 // TODO: remove Debug and impl a clean Display
@@ -447,8 +443,7 @@ fn print_moves(map: &Map, paths: &[Path]) {
 #[expect(clippy::print_stderr)]
 fn main() {
     let map = Map::parse().unwrap_or_else(|err| {
-        eprintln!("Failed to parse map from stdin:");
-        eprintln!("{err:?}"); // TODO: Debug -> Display
+        eprintln!("Error: {err:?}"); // TODO: Debug -> Display
         std::process::exit(1);
     });
 }
