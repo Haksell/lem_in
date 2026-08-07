@@ -8,6 +8,7 @@
 
 ## mandatory
 
+- [ ] the executable is called `lem-in`
 - [ ] the goal of this project is to find the quickest way to get n ants across the farm
 - [ ] quickest way means the solution with the least number of lines, respecting the
 output format requested below
